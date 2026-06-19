@@ -1,0 +1,20 @@
+# Node.js / build artifacts
+node_modules/
+dist/
+build/
+.npm/
+*.log
+
+# VS Code settings
+.vscode/
+
+# macOS
+.DS_Store
+
+# TypeScript build info
+*.tsbuildinfo
+
+# temporary files
+*.tmp
+*.swp
+*~
