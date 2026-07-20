@@ -14,6 +14,10 @@
 // 6. ALTERE o email na linha abaixo para o seu email:
 
 var EMAIL_NOTIFICACAO = "rafaeljesusoratoria@gmail.com";  // <-- ALTERE AQUI
+// Se você preferir, cole o ID da planilha aqui para garantir que o script abra
+// sempre a planilha correta, mesmo se o projeto for standalone.
+// Exemplo de ID: 1a2B3cD4eF5GhIj6K... (parte da URL da planilha)
+var SPREADSHEET_ID = ""; // <-- Cole o ID da sua planilha aqui (opcional)
 
 function createJsonResponse(payload) {
   return ContentService
@@ -34,7 +38,16 @@ function createJsonResponse(payload) {
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
-    var sheetName = data.tipo === 'Mentoria' ? 'Mentoria' : 'Leads';
+    // Mapear tipo para a aba desejada. Ajuste os nomes conforme suas abas.
+    var tipo = (data.tipo || '').toString();
+    var sheetName = 'Leads';
+    if (tipo.toLowerCase() === 'mentoria') {
+      sheetName = 'Mentoria';
+    } else if (tipo.toLowerCase() === 'empresa' || tipo.toLowerCase() === 'empresas' || tipo.toLowerCase() === 'empresa') {
+      // A aba na sua planilha se chama 'Empresa' (singular)
+      sheetName = 'Empresa';
+    }
+
     var sheet;
 
     if (sheetName === 'Mentoria') {
@@ -60,7 +73,30 @@ function doPost(e) {
         data.disponibilidade || '',
         data.tipo || 'Mentoria'
       ]);
+    } else if (sheetName === 'Empresa') {
+      // Campos esperados do formulário 'Para Empresas'
+      sheet = getOrCreateSheetByName(sheetName, [
+        'Data',
+        'Nome',
+        'Empresa',
+        'Email',
+        'WhatsApp',
+        'Tamanho da Equipe',
+        'Mensagem',
+        'Tipo'
+      ]);
+      sheet.appendRow([
+        new Date().toLocaleString('pt-BR'),
+        data.name || data.nome || '',
+        data.company || '',
+        data.email || '',
+        data.phone || data.whatsapp || '',
+        data.team_size || '',
+        data.message || '',
+        data.tipo || 'Empresa'
+      ]);
     } else {
+      // Default: Leads (quiz / lead capture)
       sheet = getOrCreateSheetByName(sheetName, [
         'Data',
         'Nome',
@@ -89,7 +125,8 @@ function doPost(e) {
       MailApp.sendEmail(EMAIL_NOTIFICACAO, assunto, corpo);
     }
 
-    return createJsonResponse({ status: "success" });
+    // Retornar também o nome da aba para facilitar debug no front-end
+    return createJsonResponse({ status: "success", sheet: sheetName });
 
   } catch (error) {
     return createJsonResponse({ status: "error", message: error.toString() });
@@ -97,13 +134,21 @@ function doPost(e) {
 }
 
 function getOrCreateSheetByName(name, headers) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   }
   return sheet;
+}
+
+// Retorna a planilha ativa ou abre pelo ID se fornecido
+function getSpreadsheet() {
+  if (SPREADSHEET_ID && SPREADSHEET_ID.length > 5) {
+    return SpreadsheetApp.openById(SPREADSHEET_ID);
+  }
+  return SpreadsheetApp.getActiveSpreadsheet();
 }
 
 // Necessário para responder com CORS habilitado

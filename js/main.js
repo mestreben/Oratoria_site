@@ -507,15 +507,27 @@ function initCompanyForm() {
     // Send to Google Sheets (using the same endpoint)
     if (GOOGLE_SCRIPT_URL) {
       try {
-        await fetch(GOOGLE_SCRIPT_URL, {
+        const res = await fetch(GOOGLE_SCRIPT_URL, {
           method: 'POST',
           mode: 'cors',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...data,
             tipo: 'Empresa' // Mark as company request
           }),
         });
-        alert('Sua solicitação foi enviada com sucesso! Entraremos em contato em breve.');
+
+        const text = await res.text();
+        let json = null;
+        try { json = JSON.parse(text); } catch (err) { json = { raw: text }; }
+        console.log('Company form response:', res.status, json);
+
+        const sheetName = (json && json.sheet) ? json.sheet : null;
+        if (sheetName) {
+          alert('Sua solicitação foi enviada com sucesso! (gravado na aba: ' + sheetName + ')');
+        } else {
+          alert('Sua solicitação foi enviada com sucesso!');
+        }
         form.reset();
       } catch (err) {
         console.error('Erro ao enviar solicitaÃ§Ã£o:', err);
