@@ -17,14 +17,12 @@ var EMAIL_NOTIFICACAO = "rafaeljesusoratoria@gmail.com";  // <-- ALTERE AQUI
 // Se você preferir, cole o ID da planilha aqui para garantir que o script abra
 // sempre a planilha correta, mesmo se o projeto for standalone.
 // Exemplo de ID: 1a2B3cD4eF5GhIj6K... (parte da URL da planilha)
-var SPREADSHEET_ID = ""; // <-- Cole o ID da sua planilha aqui (opcional)
+var SPREADSHEET_ID = "1eefVr2EocpWY6ashak9C0M7GVRb5mVx40JCOdSxZ228"; // <-- Cole o ID da sua planilha aqui (opcional)
 
 function createJsonResponse(payload) {
   return ContentService
     .createTextOutput(JSON.stringify(payload))
-    .setMimeType(ContentService.MimeType.JSON)
-    .setHeader("Access-Control-Allow-Origin", "*")
-    .setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 // 7. Clique em "Implantar" > "Nova implantação"
@@ -104,13 +102,45 @@ function doPost(e) {
         'WhatsApp',
         'Tipo de Orador'
       ]);
-      sheet.appendRow([
-        new Date().toLocaleString('pt-BR'),
-        data.nome || data.name || '',
-        data.email || '',
-        data.whatsapp || data.phone || '',
-        data.tipo || 'Ainda não fez o quiz'
-      ]);
+
+      var emailToFind = (data.email || '').toString().trim().toLowerCase();
+      var existingRowIndex = -1;
+
+      if (emailToFind) {
+        var dataRange = sheet.getDataRange();
+        var values = dataRange.getValues();
+        // A coluna C (índice 2) contém o Email
+        for (var i = 1; i < values.length; i++) {
+          var rowEmail = (values[i][2] || '').toString().trim().toLowerCase();
+          if (rowEmail === emailToFind) {
+            existingRowIndex = i + 1; // Linha correspondente (1-indexed)
+            break;
+          }
+        }
+      }
+
+      if (existingRowIndex > -1) {
+        // Atualiza a linha existente
+        if (data.nome || data.name) {
+          sheet.getRange(existingRowIndex, 2).setValue(data.nome || data.name);
+        }
+        if (data.whatsapp || data.phone) {
+          sheet.getRange(existingRowIndex, 4).setValue(data.whatsapp || data.phone);
+        }
+        if (data.tipo) {
+          sheet.getRange(existingRowIndex, 5).setValue(data.tipo);
+        }
+        sheet.getRange(existingRowIndex, 1).setValue(new Date().toLocaleString('pt-BR'));
+      } else {
+        // Adiciona nova linha
+        sheet.appendRow([
+          new Date().toLocaleString('pt-BR'),
+          data.nome || data.name || '',
+          data.email || '',
+          data.whatsapp || data.phone || '',
+          data.tipo || 'Ainda não fez o quiz'
+        ]);
+      }
     }
 
     // Envia notificação por email
@@ -136,6 +166,16 @@ function doPost(e) {
 function getOrCreateSheetByName(name, headers) {
   var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    // Busca case-insensitive para evitar duplicação caso a aba já exista com outra capitalização
+    var sheets = ss.getSheets();
+    for (var i = 0; i < sheets.length; i++) {
+      if (sheets[i].getName().toLowerCase() === name.toLowerCase()) {
+        sheet = sheets[i];
+        break;
+      }
+    }
+  }
   if (!sheet) {
     sheet = ss.insertSheet(name);
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
