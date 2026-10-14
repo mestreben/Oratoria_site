@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://www.oratoriacomrafa.com.br/sitemap.xml

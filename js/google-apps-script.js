@@ -143,16 +143,14 @@ function doPost(e) {
       }
     }
 
-    // Envia notificação por email
-    if (EMAIL_NOTIFICACAO && EMAIL_NOTIFICACAO !== "rafaeljesusoratoria@gmail.com") {
-      var assunto = "🎤 Novo Lead - Oratória com Rafa";
-      var corpo = "Novo lead capturado!\n\n" +
-        "Nome: " + (data.nome || "Não informado") + "\n" +
-        "Email: " + (data.email || "Não informado") + "\n" +
-        "WhatsApp: " + (data.whatsapp || "Não informado") + "\n" +
-        "Data: " + new Date().toLocaleString("pt-BR");
-
-      MailApp.sendEmail(EMAIL_NOTIFICACAO, assunto, corpo);
+    // Envia notificação por email. Se o envio do email falhar (ex.: limite diário do Gmail),
+    // os dados já foram salvos na planilha, então não devolvemos erro para o site.
+    if (EMAIL_NOTIFICACAO) {
+      try {
+        enviarNotificacao(sheetName, data);
+      } catch (mailError) {
+        console.error('Falha ao enviar email de notificação: ' + mailError);
+      }
     }
 
     // Retornar também o nome da aba para facilitar debug no front-end
@@ -161,6 +159,50 @@ function doPost(e) {
   } catch (error) {
     return createJsonResponse({ status: "error", message: error.toString() });
   }
+}
+
+function enviarNotificacao(sheetName, data) {
+  var linhas;
+  var assunto;
+  if (sheetName === 'Mentoria') {
+    assunto = "🎤 Nova candidatura à Mentoria - " + (data.nome || "");
+    linhas = [
+      "Nome: " + (data.nome || "Não informado"),
+      "Email: " + (data.email || "Não informado"),
+      "WhatsApp: " + (data.whatsapp || "Não informado"),
+      "Área: " + (data.area || "Não informado"),
+      "Dificuldade: " + (data.dificuldade || "Não informado"),
+      "Objetivo: " + (data.objetivo || "Não informado"),
+      "Disponibilidade: " + (data.disponibilidade || "Não informado")
+    ];
+  } else if (sheetName === 'Empresa') {
+    assunto = "🏢 Novo pedido de proposta - " + (data.company || "Empresa");
+    linhas = [
+      "Nome: " + (data.name || data.nome || "Não informado"),
+      "Empresa: " + (data.company || "Não informado"),
+      "Email: " + (data.email || "Não informado"),
+      "WhatsApp: " + (data.phone || data.whatsapp || "Não informado"),
+      "Tamanho da equipe: " + (data.team_size || "Não informado"),
+      "Mensagem: " + (data.message || "Não informado")
+    ];
+  } else {
+    assunto = "🎤 Novo Lead do Quiz - " + (data.nome || "");
+    linhas = [
+      "Nome: " + (data.nome || "Não informado"),
+      "Email: " + (data.email || "Não informado"),
+      "WhatsApp: " + (data.whatsapp || "Não informado"),
+      "Tipo de Orador: " + (data.tipo || "Não informado")
+    ];
+  }
+  linhas.push("Data: " + new Date().toLocaleString("pt-BR"));
+  var corpo = "Novo contato pelo site (aba " + sheetName + "):\n\n" + linhas.join("\n");
+  MailApp.sendEmail({ to: EMAIL_NOTIFICACAO, subject: assunto, body: corpo, replyTo: data.email || EMAIL_NOTIFICACAO });
+}
+
+// Rode esta função uma vez no editor do Apps Script (botão "Executar") para autorizar
+// o envio de emails e confirmar que a notificação chega na sua caixa de entrada.
+function testarNotificacao() {
+  enviarNotificacao('Leads', { nome: 'Teste', email: EMAIL_NOTIFICACAO, tipo: 'Teste de notificação' });
 }
 
 function getOrCreateSheetByName(name, headers) {

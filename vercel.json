@@ -1,0 +1,5 @@
+{
+  "redirects": [
+    { "source": "/quiz-inicio.html", "destination": "/quiz.html", "statusCode": 301 }
+  ]
+}
