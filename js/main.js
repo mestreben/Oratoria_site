@@ -617,7 +617,8 @@ function initApplicationForm() {
     submitBtn.disabled = true;
 
     try {
-      const res = await postToSheets({ ...data, tipo: 'Mentoria' });
+      // 'disponibilidade' repete o investimento para a versão antiga do Apps Script continuar gravando
+      const res = await postToSheets({ ...data, disponibilidade: data.investimento, tipo: 'Mentoria' });
       if (!res || !res.ok) throw new Error('Resposta inválida do servidor');
 
       pixel('Contact', { content_name: 'Mentoria' });

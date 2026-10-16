@@ -57,8 +57,9 @@ function doPost(e) {
         'Área',
         'Dificuldade',
         'Objetivo',
-        'Disponibilidade',
-        'Tipo'
+        'Investimento',
+        'Tipo',
+        'Status'
       ]);
       sheet.appendRow([
         new Date().toLocaleString('pt-BR'),
@@ -68,8 +69,9 @@ function doPost(e) {
         data.area || '',
         data.dificuldade || '',
         data.objetivo || '',
-        data.disponibilidade || '',
-        data.tipo || 'Mentoria'
+        data.investimento || data.disponibilidade || '',
+        data.tipo || 'Mentoria',
+        'Novo'
       ]);
     } else if (sheetName === 'Empresa') {
       // Campos esperados do formulário 'Para Empresas'
@@ -173,7 +175,7 @@ function enviarNotificacao(sheetName, data) {
       "Área: " + (data.area || "Não informado"),
       "Dificuldade: " + (data.dificuldade || "Não informado"),
       "Objetivo: " + (data.objetivo || "Não informado"),
-      "Disponibilidade: " + (data.disponibilidade || "Não informado")
+      "Investimento cabe? " + (data.investimento || data.disponibilidade || "Não informado")
     ];
   } else if (sheetName === 'Empresa') {
     assunto = "🏢 Novo pedido de proposta - " + (data.company || "Empresa");
